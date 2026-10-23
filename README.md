@@ -31,7 +31,7 @@ docker run -d --name logs-agent --restart unless-stopped --read-only --tmpfs /tm
   --cap-drop ALL --security-opt no-new-privileges \
   -v logs-agent-data:/data -v "$PWD/openasy-agent-kek:/run/secrets/openasy-agent-kek:ro" \
   -e LOGS_URL=https://logs.example.com -e LOGS_ENROLL_TOKEN=olg_... \
-  ghcr.io/openasy/logs-agent:0.1.0
+  ghcr.io/openasy/logs-agent:0.2.0
 ```
 
 The agent must be the same version as Logs (ADR 0019); another version is refused.
