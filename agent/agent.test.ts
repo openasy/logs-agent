@@ -31,7 +31,13 @@ const OUTPUT = [
   "user openasy",
   "",
   "@@journal",
-  JSON.stringify({ __CURSOR: CURSOR, __REALTIME_TIMESTAMP: "1761040000000000", MESSAGE: "login with password=hunter2", PRIORITY: "6", SYSLOG_IDENTIFIER: "sshd" }),
+  JSON.stringify({
+    __CURSOR: CURSOR,
+    __REALTIME_TIMESTAMP: "1761040000000000",
+    MESSAGE: "login with password=hunter2",
+    PRIORITY: "6",
+    SYSLOG_IDENTIFIER: "sshd",
+  }),
   "",
   "@@end",
   "",
@@ -48,7 +54,10 @@ describe("jobs from Logs", () => {
     ["a docker time that is not a time", { cursor: { journal: null, docker: "now; id" } }],
   ])("refuses %s", async (_name, over) => {
     expect(() => checkJob(job(over))).toThrow();
-    const r = await runJob(job(over), keys, { runScript: () => Promise.reject(new Error("must not connect")), scanHostKey: () => Promise.reject(new Error("must not connect")) });
+    const r = await runJob(job(over), keys, {
+      runScript: () => Promise.reject(new Error("must not connect")),
+      scanHostKey: () => Promise.reject(new Error("must not connect")),
+    });
     expect(r).toMatchObject({ ok: false, error: { kind: "invalid-job" } });
   });
 
@@ -66,13 +75,21 @@ describe("jobs from Logs", () => {
     expect(script.startsWith(`OPENASY_CURSOR='${CURSOR}'\n`)).toBe(true);
     expect(script.endsWith(READ_SCRIPT)).toBe(true);
     expect(script).not.toContain("rm -rf");
-    expect(r).toMatchObject({ ok: true, cursor: { journal: CURSOR }, more: false, entries: [{ msg: "login with password=***", fields: { service: "sshd", level: "6" } }] });
+    expect(r).toMatchObject({
+      ok: true,
+      cursor: { journal: CURSOR },
+      more: false,
+      entries: [{ msg: "login with password=***", fields: { service: "sshd", level: "6" } }],
+    });
     expect(JSON.stringify(r)).not.toContain("hunter2");
   });
 
   it("reports the key a host presents when it changed", async () => {
     const other = KEY.replace("Fm", "Gm");
-    const r = await runJob(job(), keys, { runScript: async () => Promise.reject(new SshError("host-key-changed", "changed")), scanHostKey: async () => [other] });
+    const r = await runJob(job(), keys, {
+      runScript: async () => Promise.reject(new SshError("host-key-changed", "changed")),
+      scanHostKey: async () => [other],
+    });
     expect(r).toEqual({ jobId: "j1", hostId: "h1", ok: false, error: { kind: "host-key-changed", message: "changed" }, hostKeys: [other] });
   });
 });
@@ -89,9 +106,13 @@ describe("the loop", () => {
       const body = JSON.parse(gunzipSync(Buffer.concat(chunks)).toString());
       seen.push({ path: req.url!, auth: req.headers.authorization, body });
       const json = (status: number, data: unknown) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(data));
-      if (req.url === "/api/v1/agent/enroll") return body.token === "enroll-1" ? json(200, { agentId: "a1", secret: "agent-secret" }) : json(401, { code: "invalid-token", detail: "used" });
+      if (req.url === "/api/v1/agent/enroll")
+        return body.token === "enroll-1" ? json(200, { agentId: "a1", secret: "agent-secret" }) : json(401, { code: "invalid-token", detail: "used" });
       if (req.headers.authorization !== "Bearer agent-secret") return json(401, { code: "invalid-token" });
-      if (req.url === "/api/v1/agent/work") return body.version === (opts.version ?? "1.0.0") ? json(200, { jobs: opts.jobs.splice(0) }) : json(409, { code: "version-mismatch", detail: "logs-agent 1.0.0 does not match logs 2.0.0" });
+      if (req.url === "/api/v1/agent/work")
+        return body.version === (opts.version ?? "1.0.0")
+          ? json(200, { jobs: opts.jobs.splice(0) })
+          : json(409, { code: "version-mismatch", detail: "logs-agent 1.0.0 does not match logs 2.0.0" });
       if (req.url === "/api/v1/agent/results") return json(202, { status: "accepted" });
       json(404, {});
     });
@@ -108,7 +129,15 @@ describe("the loop", () => {
     return {
       statePath,
       keyring,
-      a: await createAgent({ url, version: "1.0.0", state, statePath, keyring, enrollToken, transport: { runScript: async () => OUTPUT, scanHostKey: async () => [KEY] } }),
+      a: await createAgent({
+        url,
+        version: "1.0.0",
+        state,
+        statePath,
+        keyring,
+        enrollToken,
+        transport: { runScript: async () => OUTPUT, scanHostKey: async () => [KEY] },
+      }),
     };
   }
 
@@ -126,7 +155,11 @@ describe("the loop", () => {
     expect(JSON.stringify(logs.seen)).not.toMatch(/PRIVATE KEY/);
     const results = logs.seen.filter((s) => s.path === "/api/v1/agent/results");
     expect(results.map((r) => r.auth)).toEqual(["Bearer agent-secret", "Bearer agent-secret"]);
-    expect(results.find((r) => r.body.jobId === "j1")!.body).toMatchObject({ ok: true, cursor: { journal: CURSOR }, entries: [{ msg: "login with password=***" }] });
+    expect(results.find((r) => r.body.jobId === "j1")!.body).toMatchObject({
+      ok: true,
+      cursor: { journal: CURSOR },
+      entries: [{ msg: "login with password=***" }],
+    });
     expect(results.find((r) => r.body.jobId === "j2")!.body.hostKeys).toEqual([KEY]);
     // The secret is kept sealed: the file never holds it in clear.
     expect(readFileSync(statePath, "utf8")).not.toContain("agent-secret");

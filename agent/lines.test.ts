@@ -5,11 +5,23 @@ const NONE = { journal: null, docker: null };
 const out = (...sections: Array<[string, string[]]>) => sections.map(([name, lines]) => `\n@@${name}\n${lines.join("\n")}`).join("") + "\n@@end\n";
 const meta: [string, string[]] = ["meta", ["format 1", "user openasy", "groups openasy"]];
 const line = (cursor: string, msg: string, extra: Record<string, unknown> = {}) =>
-  JSON.stringify({ __CURSOR: cursor, __REALTIME_TIMESTAMP: "1761040000123456", MESSAGE: msg, PRIORITY: "3", _SYSTEMD_UNIT: "nginx.service", _PID: "812", ...extra });
+  JSON.stringify({
+    __CURSOR: cursor,
+    __REALTIME_TIMESTAMP: "1761040000123456",
+    MESSAGE: msg,
+    PRIORITY: "3",
+    _SYSTEMD_UNIT: "nginx.service",
+    _PID: "812",
+    ...extra,
+  });
 
 describe("reading the journal", () => {
   it("turns journal lines into entries, and keeps the last cursor", () => {
-    const r = parseRead(out(meta, ["journal", [line("s=1;i=1", "upstream timed out"), line("s=1;i=2", "upstream back", { SYSLOG_IDENTIFIER: "nginx" })]]), 100, NONE);
+    const r = parseRead(
+      out(meta, ["journal", [line("s=1;i=1", "upstream timed out"), line("s=1;i=2", "upstream back", { SYSLOG_IDENTIFIER: "nginx" })]]),
+      100,
+      NONE,
+    );
     expect(r.entries).toEqual([
       { time: "2025-10-21T09:46:40.123Z", msg: "upstream timed out", fields: { level: "3", service: "nginx", "systemd.unit": "nginx.service", pid: "812" } },
       { time: "2025-10-21T09:46:40.123Z", msg: "upstream back", fields: { level: "3", service: "nginx", "systemd.unit": "nginx.service", pid: "812" } },
@@ -46,7 +58,11 @@ describe("reading the journal", () => {
 describe("reading containers", () => {
   it("reads each container's lines, masks them, and starts the next read where this one stopped", () => {
     const r = parseRead(
-      out(meta, ["journal", []], ["docker", ["@until 2026-10-21T10:00:00Z", "@container 3f2a api", "2026-10-21T09:59:00.5Z GET /health 200", "2026-10-21T09:59:01Z token=abcdef123"]]),
+      out(
+        meta,
+        ["journal", []],
+        ["docker", ["@until 2026-10-21T10:00:00Z", "@container 3f2a api", "2026-10-21T09:59:00.5Z GET /health 200", "2026-10-21T09:59:01Z token=abcdef123"]],
+      ),
       100,
       NONE,
     );
@@ -58,7 +74,14 @@ describe("reading containers", () => {
   });
 
   it("says when a container wrote more than one read takes", () => {
-    const r = parseRead(out(meta, ["docker", ["@until 2026-10-21T10:00:00Z", "@container 3f2a api", "2026-10-21T09:59:00Z a", "2026-10-21T09:59:01Z b", "2026-10-21T09:59:02Z c"]]), 2, NONE);
+    const r = parseRead(
+      out(meta, [
+        "docker",
+        ["@until 2026-10-21T10:00:00Z", "@container 3f2a api", "2026-10-21T09:59:00Z a", "2026-10-21T09:59:01Z b", "2026-10-21T09:59:02Z c"],
+      ]),
+      2,
+      NONE,
+    );
     expect(r.entries.map((e) => e.msg)).toEqual(["a", "b", expect.stringContaining("container api wrote more than 2 lines")]);
   });
 

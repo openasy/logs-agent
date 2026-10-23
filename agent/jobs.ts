@@ -21,7 +21,15 @@ export interface Job {
 }
 
 export type Result =
-  | { jobId: string; hostId: string; ok: true; entries: Entry[]; cursor: { journal: string | null; docker: string | null }; more: boolean; unreadable: string[] }
+  | {
+      jobId: string;
+      hostId: string;
+      ok: true;
+      entries: Entry[];
+      cursor: { journal: string | null; docker: string | null };
+      more: boolean;
+      unreadable: string[];
+    }
   | { jobId: string; hostId: string; ok: true; hostKeys: string[] }
   | { jobId: string; hostId: string; ok: false; error: { kind: SshFailure | "invalid-job"; message: string }; hostKeys?: string[] };
 
@@ -42,7 +50,8 @@ export function checkJob(raw: unknown): Job {
   if (typeof t.address !== "string" || !ADDRESS.test(t.address)) throw new Error("target: address is not a host name or IP address");
   if (typeof t.port !== "number" || !Number.isInteger(t.port) || t.port < 1 || t.port > 65535) throw new Error("target: port is not 1 to 65535");
   if (typeof t.user !== "string" || !USER.test(t.user)) throw new Error("target: user is not a Unix account name");
-  if (!Array.isArray(t.hostKeys) || t.hostKeys.length > 8 || t.hostKeys.some((k) => typeof k !== "string" || !HOST_KEY.test(k))) throw new Error("target: host keys are not OpenSSH public keys");
+  if (!Array.isArray(t.hostKeys) || t.hostKeys.length > 8 || t.hostKeys.some((k) => typeof k !== "string" || !HOST_KEY.test(k)))
+    throw new Error("target: host keys are not OpenSSH public keys");
   if (t.auth !== "certificate" && t.auth !== "key") throw new Error("target: auth is certificate or key");
   if (typeof t.containers !== "boolean") throw new Error("target: containers is true or false");
   const c = (j.cursor ?? { journal: null, docker: null }) as Partial<Job["cursor"]>;
@@ -75,7 +84,11 @@ export interface Transport {
   scanHostKey: typeof scanHostKey;
 }
 
-export async function runJob(raw: unknown, keys: { caPrivateKey: string; keyPrivateKey: string }, transport: Transport = { runScript, scanHostKey }): Promise<Result> {
+export async function runJob(
+  raw: unknown,
+  keys: { caPrivateKey: string; keyPrivateKey: string },
+  transport: Transport = { runScript, scanHostKey },
+): Promise<Result> {
   let job: Job;
   try {
     job = checkJob(raw);
@@ -83,7 +96,8 @@ export async function runJob(raw: unknown, keys: { caPrivateKey: string; keyPriv
     const r = raw as { id?: unknown; hostId?: unknown } | null;
     return { jobId: String(r?.id ?? ""), hostId: String(r?.hostId ?? ""), ok: false, error: { kind: "invalid-job", message: (err as Error).message } };
   }
-  const cred: Credential = job.target.auth === "certificate" ? { mode: "certificate", caPrivateKey: keys.caPrivateKey } : { mode: "key", privateKey: keys.keyPrivateKey };
+  const cred: Credential =
+    job.target.auth === "certificate" ? { mode: "certificate", caPrivateKey: keys.caPrivateKey } : { mode: "key", privateKey: keys.keyPrivateKey };
   const base = { jobId: job.id, hostId: job.hostId };
   try {
     if (job.action === "host-key") return { ...base, ok: true, hostKeys: await transport.scanHostKey(job.target, cred) };

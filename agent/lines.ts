@@ -118,7 +118,12 @@ export function parseRead(out: string, max: number, previous: { journal: string 
   if (docker) {
     let container: { id: string; name: string; lines: number } | undefined;
     const skipped = (c: typeof container) => {
-      if (c && c.lines > max) entries.push({ time: new Date().toISOString(), msg: `logs-agent: container ${c.name} wrote more than ${max} lines since the last read; the rest of them were skipped. Read the host more often.`, fields: { level: "warn", service: "logs-agent", "container.name": c.name } });
+      if (c && c.lines > max)
+        entries.push({
+          time: new Date().toISOString(),
+          msg: `logs-agent: container ${c.name} wrote more than ${max} lines since the last read; the rest of them were skipped. Read the host more often.`,
+          fields: { level: "warn", service: "logs-agent", "container.name": c.name },
+        });
     };
     for (const line of docker) {
       if (!line) continue;
