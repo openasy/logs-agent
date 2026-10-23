@@ -31,7 +31,7 @@ docker run -d --name logs-agent --restart unless-stopped --read-only --tmpfs /tm
   --cap-drop ALL --security-opt no-new-privileges \
   -v logs-agent-data:/data -v "$PWD/openasy-agent-kek:/run/secrets/openasy-agent-kek:ro" \
   -e LOGS_URL=https://logs.example.com -e LOGS_ENROLL_TOKEN=olg_... \
-  ghcr.io/openasy/logs-agent:0.2.0
+  ghcr.io/openasy/logs-agent:0.3.0
 ```
 
 The agent must be the same version as Logs (ADR 0019); another version is refused.
@@ -44,6 +44,7 @@ The agent must be the same version as Logs (ADR 0019); another version is refuse
 | `LOGS_AGENT_STATE` | `/data/agent.state` | The sealed state, on its volume |
 | `POLL_SECONDS` | `10` | How often it asks for work |
 | `CONCURRENCY` | `8` | Hosts read at the same time |
+| `OPENASY_KEYS_DIR` | `/keys` | Private keys a host in the hosts file names with `keyFile`; mount it read-only |
 | `PORT` | `9100` | `/healthz`, `/readyz` and `/metrics` |
 
 ## What a host needs
