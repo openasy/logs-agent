@@ -35,8 +35,9 @@ export function mask(s: string): string {
 }
 
 const MAX_MSG = 64 * 1024;
-/** journalctl's hint when the account sees only its own journal. */
-const PARTIAL_JOURNAL = /^Hint: You are currently not seeing messages from other users and the system/;
+/** What journalctl says when the account sees only its own journal, or none of it. */
+const PARTIAL_JOURNAL =
+  /^Hint: You are currently not seeing messages from other users and the system|^No journal files were opened due to insufficient permissions/;
 
 /** journald fields kept, under the names Logs uses. */
 const JOURNAL_FIELDS: Record<string, string> = {

@@ -42,6 +42,8 @@ describe("reading the journal", () => {
   it("says when the account sees only its own journal, or there is no journal", () => {
     const partial = parseRead(out(meta, ["journal", ["Hint: You are currently not seeing messages from other users and the system."]]), 100, NONE);
     expect(partial.unreadable).toEqual(["the system journal: add the openasy account to the systemd-journal group"]);
+    const none = parseRead(out(meta, ["journal", ["No journal files were opened due to insufficient permissions."]]), 100, NONE);
+    expect(none.unreadable).toEqual(["the system journal: add the openasy account to the systemd-journal group"]);
     expect(parseRead(out(meta, ["journal", ["@missing journalctl"]]), 100, NONE).unreadable).toEqual(["journald: journalctl is not on this host"]);
   });
 
